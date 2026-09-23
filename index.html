@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WealthPulse | Evolución de Inversiones</title>
+    <link rel="icon" type="image/x-icon" href="inversion.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="inversion.ico">
+    <link rel="apple-touch-icon" href="inversion.ico">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="manifest.json">
+
+
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 2rem 1rem; }
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* PANTALLA DE AUTH / LOGIN */
+        .auth-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); display: flex; justify-content: center; align-items: center; z-index: 20000; padding: 1rem; }
+        .auth-card { background: var(--card-bg); width: 100%; max-width: 400px; padding: 2rem; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); }
+        .auth-card h2 { margin-bottom: 0.5rem; font-size: 1.5rem; text-align: center; }
+        .auth-card p { color: var(--text-muted); font-size: 0.875rem; text-align: center; margin-bottom: 1.5rem; }
+        .auth-error { color: var(--danger); font-size: 0.85rem; margin-bottom: 1rem; text-align: center; display: none; }
+
+        /* CABECERA PRINCIPAL */
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        header h1 { font-size: 1.75rem; font-weight: 700; }
+        .user-panel { display: flex; align-items: center; gap: 1rem; }
+        .user-email { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
+
+        /* BOTONES */
+        .btn { background-color: var(--primary); color: white; border: none; padding: 0.75rem 1.25rem; border-radius: var(--radius); font-weight: 600; cursor: pointer; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2); }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn-full { width: 100%; }
+        .btn-sm { padding: 0.5rem 0.85rem; font-size: 0.85rem; border-radius: 8px; cursor: pointer; border: none; font-weight: 600; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { background: #f1f5f9; }
+        .btn-danger { background: #fee2e2; color: var(--danger); border: 1px solid #fca5a5; }
+        .btn-danger:hover { background: #fecaca; }
+
+        /* TARJETAS DE TOTALES GLOBALES */
+        .totales-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }
+        .kpi-card { background: var(--card-bg); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); }
+        .kpi-card h3 { font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem; }
+        .kpi-card .value { font-size: 1.85rem; font-weight: 700; }
+        .kpi-card .subtext { font-size: 0.875rem; margin-top: 0.25rem; font-weight: 600; }
+
+        .positivo { color: var(--success); }
+        .negativo { color: var(--danger); }
+
+        /* FONDOS / ACTIVOS */
+        .fondo-container { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.5rem; }
+        .fondo-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+        
+        .fondo-info h2 { font-size: 1.25rem; font-weight: 700; }
+        .asset-badge { font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 20px; background: #e0f2fe; color: #0369a1; font-weight: 600; display: inline-block; margin-top: 0.25rem; }
+
+        /* TABLA HISTORIAL */
+        .tabla-wrapper { overflow-x: auto; margin-bottom: 1.25rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left; }
+        th, td { padding: 0.75rem; border-bottom: 1px solid var(--border); }
+        th { background: #f8fafc; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 600; }
+
+        /* FORMULARIO NUEVA FECHA */
+        .form-nuevo-registro { display: flex; gap: 0.75rem; flex-wrap: wrap; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid var(--border); align-items: center; }
+        .form-nuevo-registro input { padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; flex: 1; min-width: 140px; }
+
+        /* MODALES */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); display: none; justify-content: center; align-items: center; z-index: 10000; padding: 1rem; }
+        .modal { background: var(--card-bg); width: 100%; max-width: 450px; border-radius: var(--radius); padding: 2rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-size: 0.85rem; margin-bottom: 0.35rem; color: var(--text-muted); }
+        .form-group input, .form-group select { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
+
+        .empty-state { text-align: center; padding: 3rem; color: var(--text-muted); background: var(--card-bg); border-radius: var(--radius); border: 1px dashed var(--border); }
+
+        /* PIE DE PÁGINA (FOOTER) */
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+
+    <!-- MODAL DE AUTENTICACIÓN / LOGIN -->
+    <div class="auth-overlay" id="auth-screen">
+        <div class="auth-card">
+            <h2>WealthPulse</h2>
+            <p>Accede con tu cuenta para ver tus activos</p>
+            <div class="auth-error" id="auth-error-msg"></div>
+            
+            <form id="form-auth">
+                <div class="form-group">
+                    <label>Correo Electrónico</label>
+                    <input type="email" id="auth-email" required placeholder="tu@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-full" id="btn-login">Iniciar Sesión</button>
+                <button type="button" class="btn btn-outline btn-full" id="btn-register" style="margin-top: 0.5rem;">Crear Cuenta Nueva</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL -->
+    <div class="container">
+        <!-- CABECERA -->
+        <header>
+            <h1>WealthPulse <span style="font-size: 1rem; font-weight: 400; color: var(--text-muted);">| Mis Inversiones</span></h1>
+            <div class="user-panel">
+                <span class="user-email" id="user-display-email"></span>
+                <button class="btn btn-sm btn-outline" id="btn-logout">Cerrar Sesión</button>
+                <button class="btn" id="btn-abrir-modal-nuevo">+ Nuevo Activo</button>
+            </div>
+        </header>
+
+        <!-- 3 TARJETAS DE TOTALES GLOBALES -->
+        <section class="totales-grid">
+            <div class="kpi-card">
+                <h3>Total Invertido</h3>
+                <div class="value" id="global-invertido">0,00 €</div>
+                <div class="subtext" style="color: var(--text-muted);">Suma de aportaciones actuales</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Valor Actual Total</h3>
+                <div class="value" id="global-valor">0,00 €</div>
+                <div class="subtext" style="color: var(--text-muted);">A fecha del último registro</div>
+            </div>
+            <div class="kpi-card">
+                <h3>Beneficio Global</h3>
+                <div class="value" id="global-beneficio">0,00 €</div>
+                <div class="subtext" id="global-rentabilidad">Rentabilidad: 0,00%</div>
+            </div>
+        </section>
+
+        <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Detalle de Fondos y Evolución</h2>
+        
+        <!-- CONTENEDOR DE FONDOS -->
+        <section id="lista-fondos">
+            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Inicia sesión para cargar tus datos...</div>
+        </section>
+
+        <!-- RESUMEN MENSUAL GLOBAL DE LA CARTERA -->
+        <section style="margin-top: 2.5rem; margin-bottom: 2rem;">
+            <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Evolución Mensual Global</h2>
+            <div class="fondo-container">
+                <div class="tabla-wrapper" style="margin-bottom: 0;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mes</th>
+                                <th>Total Inversión</th>
+                                <th>Invertido Mes</th>
+                                <th>Valor Actual de Cartera</th>
+                                <th>Beneficio Global</th>
+                                <th>Diferencia Beneficio</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-resumen-mensual">
+                            <tr><td colspan="7" style="text-align:center; color: var(--text-muted);">Cargando historial mensual...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- PIE DE PÁGINA: EXPORTAR E IMPORTAR -->
+        <footer>
+            <button class="btn btn-sm btn-outline" id="btn-exportar-json">📥 Exportar JSON</button>
+            <button class="btn btn-sm btn-outline" id="btn-importar-json">📤 Importar JSON</button>
+            <input type="file" id="input-archivo-json" accept=".json" style="display: none;">
+        </footer>
+    </div>
+
+    <!-- MODAL: CREAR NUEVO ACTIVO -->
+    <div class="modal-overlay" id="modal-nuevo-activo">
+        <div class="modal">
+            <h3 style="margin-bottom: 1rem;">Crear Nuevo Activo / Fondo</h3>
+            <form id="form-nuevo-activo">
+                <div class="form-group">
+                    <label>Nombre del Activo</label>
+                    <input type="text" id="nuevo-nombre" required placeholder="Ej. Fondo Vanguard S&P 500">
+                </div>
+                <div class="form-group">
+                    <label>Categoría</label>
+                    <select id="nueva-categoria">
+                        <option value="Fondos">Fondos </option>
+                        <option value="Robo Advisor">Robo Advisor</option>
+                        <option value="Criptomoneda">Criptomoneda</option>
+                        <option value="Acciones">Acciones</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-outline" id="btn-cerrar-modal">Cancelar</button>
+                    <button type="submit" class="btn">Crear Activo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR ACTIVO EXISTENTE -->
+    <div class="modal-overlay" id="modal-editar-activo">
+        <div class="modal">
+            <h3 style="margin-bottom: 1rem;">Modificar Activo</h3>
+            <form id="form-editar-activo">
+                <input type="hidden" id="editar-id">
+                <div class="form-group">
+                    <label>Nombre del Activo</label>
+                    <input type="text" id="editar-nombre" required>
+                </div>
+                <div class="form-group">
+                    <label>Categoría</label>
+                    <select id="editar-categoria">
+                        <option value="Fondos">Fondos</option>
+                        <option value="Robo Advisor">Robo Advisor</option>
+                        <option value="Criptomoneda">Criptomoneda</option>
+                        <option value="Acciones">Acciones</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-outline" id="btn-cerrar-modal-editar">Cancelar</button>
+                    <button type="submit" class="btn">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT FIREBASE CON AUTH + DATABASE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // 1. REEMPLAZA CON LOS DATOS DE TU CONSOLA FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyAD5p6pmAEEmmFp5vUEmxXwfZvH6twEYuQ",
+            authDomain: "gesalquiler-a79ed.firebaseapp.com",
+            databaseURL: "https://gesalquiler-a79ed-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "gesalquiler-a79ed",
+            storageBucket: "gesalquiler-a79ed.firebasestorage.app",
+            messagingSenderId: "671148293463",
+            appId: "1:671148293463:web:fc971368b6caad046b9212"
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        let currentUser = null;
+        let fondosRef = null;
+        let fondos = [];
+
+        // 2. ESCUCHAR EL ESTADO DE AUTENTICACIÓN
+        onAuthStateChanged(auth, (user) => {
+            const authScreen = document.getElementById('auth-screen');
+            if (user) {
+                currentUser = user;
+                authScreen.style.display = 'none';
+                document.getElementById('user-display-email').textContent = user.email;
+
+                fondosRef = ref(db, `usuarios/${user.uid}/fondos`);
+
+                onValue(fondosRef, (snapshot) => {
+                    const data = snapshot.val();
+                    fondos = data ? Object.values(data) : [];
+                    actualizarInterfaz();
+                });
+            } else {
+                currentUser = null;
+                fondos = [];
+                authScreen.style.display = 'flex';
+                document.getElementById('user-display-email').textContent = '';
+            }
+        });
+
+        // 3. LOGIN Y REGISTRO
+        const formAuth = document.getElementById('form-auth');
+        const authErrorMsg = document.getElementById('auth-error-msg');
+
+        formAuth.addEventListener('submit', (e) => {
+            e.preventDefault();
+            authErrorMsg.style.display = 'none';
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+
+            signInWithEmailAndPassword(auth, email, password)
+                .catch((error) => {
+                    authErrorMsg.textContent = "Error al iniciar sesión: " + error.message;
+                    authErrorMsg.style.display = 'block';
+                });
+        });
+
+        document.getElementById('btn-register').addEventListener('click', () => {
+            authErrorMsg.style.display = 'none';
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
+
+            if (!email || !password) {
+                authErrorMsg.textContent = "Introduce correo y contraseña para registrarte.";
+                authErrorMsg.style.display = 'block';
+                return;
+            }
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .catch((error) => {
+                    authErrorMsg.textContent = "Error al registrarse: " + error.message;
+                    authErrorMsg.style.display = 'block';
+                });
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            signOut(auth);
+        });
+
+        // 4. GUARDAR DATOS EN LA RUTA DEL USUARIO
+        function guardarDatos() {
+            if (fondosRef) {
+                set(fondosRef, fondos).catch(error => console.error("Error al guardar:", error));
+            }
+        }
+
+        // --- FUNCIONES DE FORMATEO ESTRICTO (PUNTOS Y COMAS) ---
+        function formatMoneda(valor) {
+            if (isNaN(valor)) return "0,00 €";
+            let parts = parseFloat(valor).toFixed(2).split(".");
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            return parts.join(",") + " €";
+        }
+
+        function formatPorcentaje(valor) {
+            if (isNaN(valor)) return "0,00";
+            let parts = parseFloat(valor).toFixed(2).split(".");
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            return parts.join(",");
+        }
+        // -------------------------------------------------------
+
+        // 5. RENDERIZADO DE LA INTERFAZ
+        function actualizarInterfaz() {
+            let globalInvertido = 0;
+            let globalValor = 0;
+            const contenedor = document.getElementById("lista-fondos");
+            contenedor.innerHTML = "";
+
+            if (fondos.length === 0) {
+                contenedor.innerHTML = '<div class="empty-state">No tienes activos registrados. Haz clic en <b>"+ Nuevo Activo"</b> para añadir el primero.</div>';
+                actualizarKPIs(0, 0);
+                actualizarResumenMensual();
+                return;
+            }
+
+            fondos.forEach(fondo => {
+                if (!fondo.historial) fondo.historial = [];
+                const ultimoRegistro = fondo.historial[fondo.historial.length - 1] || { invertido: 0, valor: 0 };
+                
+                globalInvertido += parseFloat(ultimoRegistro.invertido);
+                globalValor += parseFloat(ultimoRegistro.valor);
+
+                const beneficioFondo = ultimoRegistro.valor - ultimoRegistro.invertido;
+                const claseBeneficio = beneficioFondo >= 0 ? "positivo" : "negativo";
+                const signo = beneficioFondo >= 0 ? "+" : "";
+
+                const filasHistorial = fondo.historial.map((reg, index) => {
+                    const diff = reg.valor - reg.invertido;
+                    const diffClase = diff >= 0 ? "positivo" : "negativo";
+                    const diffSigno = diff >= 0 ? "+" : "";
+
+                    // Cálculo del cambio en la inversión aportada
+                    const prevInvertido = index > 0 ? fondo.historial[index - 1].invertido : 0;
+                    const aportacion = reg.invertido - prevInvertido;
+                    const aportacionSigno = aportacion >= 0 ? "+" : "";
+
+                    // Cálculo y lógica condicional para Variación del Beneficio
+                    let celdaVarBeneficio = '<td style="color: var(--text-muted); text-align: center;">-</td>';
+                    if (index > 0) {
+                        const prevDiff = (fondo.historial[index - 1].valor - fondo.historial[index - 1].invertido);
+                        const varBeneficio = diff - prevDiff;
+                        const varBeneficioClase = varBeneficio >= 0 ? "positivo" : "negativo";
+                        const varBeneficioSigno = varBeneficio >= 0 ? "+" : "";
+                        celdaVarBeneficio = `<td class="${varBeneficioClase}">${varBeneficioSigno}${formatMoneda(varBeneficio)}</td>`;
+                    }
+
+                    return `<tr>
+                        <td>${reg.fecha}</td>
+                        <td>${formatMoneda(reg.invertido)}</td>
+                        <td style="color: var(--text-muted);">${index === 0 ? formatMoneda(reg.invertido) : aportacionSigno + formatMoneda(aportacion)}</td>
+                        <td>${formatMoneda(reg.valor)}</td>
+                        <td class="${diffClase}">${diffSigno}${formatMoneda(diff)}</td>
+                        ${celdaVarBeneficio}
+                        <td style="text-align: right;"><button class="btn-sm btn-outline btn-borrar-registro" data-fondo-id="${fondo.id}" data-registro-index="${index}" style="color: var(--danger); border-color: transparent;">✕</button></td>
+                    </tr>`;
+                }).join('');
+
+                contenedor.innerHTML += `
+                    <div class="fondo-container">
+                        <div class="fondo-header">
+                            <div class="fondo-info">
+                                <h2>${fondo.nombre}</h2>
+                                <span class="asset-badge">${fondo.categoria || 'Activo'}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <div><strong>Valor Actual:</strong> ${formatMoneda(ultimoRegistro.valor)}</div>
+                                <div class="${claseBeneficio}" style="font-weight: 600;">Beneficio: ${signo}${formatMoneda(beneficioFondo)}</div>
+                                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <button class="btn-sm btn-outline btn-editar-activo" data-id="${fondo.id}">Modificar</button>
+                                    <button class="btn-sm btn-danger btn-borrar-activo" data-id="${fondo.id}">Vender / Borrar Activo</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tabla-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Total Invertido</th>
+                                        <th>Aportación</th>
+                                        <th>Valor a esa Fecha</th>
+                                        <th>Diferencia</th>
+                                        <th>Var. Beneficio</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${filasHistorial || '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">Sin registros de fecha. Añade uno abajo.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <form class="form-nuevo-registro" data-id="${fondo.id}">
+                            <span style="font-size: 0.85rem; font-weight: 600; width: 100%;">+ Añadir nuevo registro de evolución:</span>
+                            <input type="date" name="fecha" required>
+                            <input type="number" step="0.01" name="invertido" placeholder="Invertido acum. (€)" required>
+                            <input type="number" step="0.01" name="valor" placeholder="Valor actual (€)" required>
+                            <button type="submit" class="btn btn-sm">+ Registrar Fecha</button>
+                        </form>
+                    </div>`;
+            });
+
+            actualizarKPIs(globalInvertido, globalValor);
+            actualizarResumenMensual();
+        }
+
+        function actualizarKPIs(inversion, valor) {
+            const beneficio = valor - inversion;
+            const rentabilidad = inversion > 0 ? (beneficio / inversion) * 100 : 0;
+            const isPositive = beneficio >= 0;
+            const colorClass = isPositive ? 'positivo' : 'negativo';
+            const sign = isPositive ? '+' : '';
+
+            document.getElementById("global-invertido").textContent = formatMoneda(inversion);
+            document.getElementById("global-valor").textContent = formatMoneda(valor);
+            
+            const elBeneficio = document.getElementById("global-beneficio");
+            elBeneficio.textContent = `${sign}${formatMoneda(beneficio)}`;
+            elBeneficio.className = `value ${colorClass}`;
+
+            const elRentabilidad = document.getElementById("global-rentabilidad");
+            elRentabilidad.textContent = `Rentabilidad Global: ${sign}${formatPorcentaje(rentabilidad)}%`;
+            elRentabilidad.className = `subtext ${colorClass}`;
+        }
+
+        // 5B. RENDERIZADO DEL RESUMEN MENSUAL GLOBAL DE LA CARTERA
+        function actualizarResumenMensual() {
+            const tbody = document.getElementById("tabla-resumen-mensual");
+            tbody.innerHTML = "";
+
+            // 1. Recopilar todos los meses únicos existentes en los datos de todos los activos
+            const mesesMap = {}; // { 'MM/YYYY': { year, month } }
+
+            fondos.forEach(f => {
+                if (f.historial) {
+                    f.historial.forEach(r => {
+                        const partes = r.fecha.split('/');
+                        if (partes.length === 3) {
+                            const mesAño = `${partes[1]}/${partes[2]}`;
+                            mesesMap[mesAño] = {
+                                mesAño: mesAño,
+                                year: parseInt(partes[2]),
+                                month: parseInt(partes[1])
+                            };
+                        }
+                    });
+                }
+            });
+
+            const listaMeses = Object.values(mesesMap).sort((a, b) => {
+                if (a.year !== b.year) return a.year - b.year;
+                return a.month - b.month;
+            });
+
+            if (listaMeses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">No hay registros históricos para mostrar la evolución mensual.</td></tr>';
+                return;
+            }
+
+            // 2. Para cada mes, calcular la suma del total invertido y valor actual de la cartera
+            const datosMensuales = listaMeses.map(m => {
+                let totalInvertidoMes = 0;
+                let totalValorMes = 0;
+
+                fondos.forEach(f => {
+                    if (f.historial && f.historial.length > 0) {
+                        // Buscar el registro de este activo para este mes
+                        const registrosMes = f.historial.filter(r => {
+                            const p = r.fecha.split('/');
+                            return p.length === 3 && `${p[1]}/${p[2]}` === m.mesAño;
+                        });
+
+                        if (registrosMes.length > 0) {
+                            // Si hay más de uno en el mes, tomar el más reciente
+                            const ultimoDelMes = registrosMes[registrosMes.length - 1];
+                            totalInvertidoMes += parseFloat(ultimoDelMes.invertido);
+                            totalValorMes += parseFloat(ultimoDelMes.valor);
+                        } else {
+                            // Si no hay registro exactamente en este mes, tomar el valor acumulado hasta ese mes
+                            const registrosAnteriores = f.historial.filter(r => {
+                                const p = r.fecha.split('/');
+                                const y = parseInt(p[2]);
+                                const mon = parseInt(p[1]);
+                                return y < m.year || (y === m.year && mon < m.month);
+                            });
+
+                            if (registrosAnteriores.length > 0) {
+                                const ultimoAnt = registrosAnteriores[registrosAnteriores.length - 1];
+                                totalInvertidoMes += parseFloat(ultimoAnt.invertido);
+                                totalValorMes += parseFloat(ultimoAnt.valor);
+                            }
+                        }
+                    }
+                });
+
+                const beneficioMes = totalValorMes - totalInvertidoMes;
+
+                return {
+                    mesAño: m.mesAño,
+                    totalInvertido: totalInvertidoMes,
+                    totalValor: totalValorMes,
+                    beneficio: beneficioMes
+                };
+            });
+
+            // 3. Generar las filas de la tabla agregando las diferencias
+            datosMensuales.forEach((d, index) => {
+                const prevInvertido = index > 0 ? datosMensuales[index - 1].totalInvertido : 0;
+                const invertidoMes = d.totalInvertido - prevInvertido;
+                const invertidoSigno = invertidoMes >= 0 ? "+" : "";
+
+                const prevBeneficio = index > 0 ? datosMensuales[index - 1].beneficio : 0;
+                const diffBeneficio = d.beneficio - prevBeneficio;
+                
+                const beneficioClase = d.beneficio >= 0 ? "positivo" : "negativo";
+                const beneficioSigno = d.beneficio >= 0 ? "+" : "";
+
+                let celdaDiffBeneficio = '<td style="color: var(--text-muted); text-align: center;">-</td>';
+                if (index > 0) {
+                    const diffBeneficioClase = diffBeneficio >= 0 ? "positivo" : "negativo";
+                    const diffBeneficioSigno = diffBeneficio >= 0 ? "+" : "";
+                    celdaDiffBeneficio = `<td class="${diffBeneficioClase}">${diffBeneficioSigno}${formatMoneda(diffBeneficio)}</td>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${d.mesAño}</strong></td>
+                        <td>${formatMoneda(d.totalInvertido)}</td>
+                        <td style="color: var(--text-muted);">${index === 0 ? formatMoneda(d.totalInvertido) : invertidoSigno + formatMoneda(invertidoMes)}</td>
+                        <td>${formatMoneda(d.totalValor)}</td>
+                        <td class="${beneficioClase}">${beneficioSigno}${formatMoneda(d.beneficio)}</td>
+                        ${celdaDiffBeneficio}
+                        <td style="text-align: right;"><button class="btn-sm btn-outline btn-borrar-mes" data-mes="${d.mesAño}" style="color: var(--danger); border-color: transparent;">✕</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 6. EXPORTAR E IMPORTAR JSON
+        document.getElementById('btn-exportar-json').addEventListener('click', () => {
+            if (fondos.length === 0) {
+                alert("No hay datos para exportar.");
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fondos, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `wealthpulse_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        });
+
+        document.getElementById('btn-importar-json').addEventListener('click', () => {
+            document.getElementById('input-archivo-json').click();
+        });
+
+        document.getElementById('input-archivo-json').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const datosImportados = JSON.parse(event.target.result);
+                    if (Array.isArray(datosImportados)) {
+                        if (confirm("¿Deseas reemplazar todos tus datos actuales con los del archivo importado?")) {
+                            fondos = datosImportados;
+                            guardarDatos();
+                        }
+                    } else {
+                        alert("El archivo JSON no tiene un formato válido.");
+                    }
+                } catch (err) {
+                    alert("Error al leer el archivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = ''; // Limpiar input
+        });
+
+        // DELEGACIÓN DE EVENTOS (CLICKS)
+        document.addEventListener('click', (e) => {
+            const target = e.target;
+
+            // Abrir modal Nuevo Activo
+            if (target.id === 'btn-abrir-modal-nuevo') {
+                document.getElementById('form-nuevo-activo').reset();
+                document.getElementById('modal-nuevo-activo').style.display = 'flex';
+                return;
+            }
+
+            // Cerrar modal Nuevo Activo
+            if (target.id === 'btn-cerrar-modal') {
+                document.getElementById('modal-nuevo-activo').style.display = 'none';
+                return;
+            }
+
+            // Abrir modal Editar Activo
+            const btnEditarActivo = target.closest('.btn-editar-activo');
+            if (btnEditarActivo) {
+                const idActivo = parseInt(btnEditarActivo.getAttribute('data-id'));
+                const fondoObj = fondos.find(f => f.id === idActivo);
+                if (fondoObj) {
+                    document.getElementById('editar-id').value = fondoObj.id;
+                    document.getElementById('editar-nombre').value = fondoObj.nombre;
+                    document.getElementById('editar-categoria').value = fondoObj.categoria || 'Fondo Indexado';
+                    document.getElementById('modal-editar-activo').style.display = 'flex';
+                }
+                return;
+            }
+
+            // Cerrar modal Editar Activo
+            if (target.id === 'btn-cerrar-modal-editar') {
+                document.getElementById('modal-editar-activo').style.display = 'none';
+                return;
+            }
+
+            // Borrar / Vender Activo
+            const btnBorrarActivo = target.closest('.btn-borrar-activo');
+            if (btnBorrarActivo) {
+                const idActivo = parseInt(btnBorrarActivo.getAttribute('data-id'));
+                if (confirm("¿Estás seguro de que has vendido/borrado este activo completo? Se eliminará todo su historial.")) {
+                    fondos = fondos.filter(f => f.id !== idActivo);
+                    guardarDatos();
+                }
+                return;
+            }
+
+            // Borrar Registro Individual
+            const btnBorrarReg = target.closest('.btn-borrar-registro');
+            if (btnBorrarReg) {
+                const fId = parseInt(btnBorrarReg.getAttribute('data-fondo-id'));
+                const rIdx = parseInt(btnBorrarReg.getAttribute('data-registro-index'));
+                
+                const fondoObj = fondos.find(f => f.id === fId);
+                if (fondoObj && fondoObj.historial) {
+                    fondoObj.historial.splice(rIdx, 1);
+                    guardarDatos();
+                }
+                return;
+            }
+
+            // Borrar Mes Completo en el Resumen Mensual Global
+            const btnBorrarMes = target.closest('.btn-borrar-mes');
+            if (btnBorrarMes) {
+                const mesAEliminar = btnBorrarMes.getAttribute('data-mes');
+                if (confirm(`¿Estás seguro de que deseas eliminar todas las entradas asociadas al mes ${mesAEliminar} de todos tus activos?`)) {
+                    fondos.forEach(f => {
+                        if (f.historial) {
+                            f.historial = f.historial.filter(r => {
+                                const p = r.fecha.split('/');
+                                return p.length === 3 && `${p[1]}/${p[2]}` !== mesAEliminar;
+                            });
+                        }
+                    });
+                    guardarDatos();
+                }
+                return;
+            }
+        });
+
+        // DELEGACIÓN DE EVENTOS (SUBMITS)
+        document.addEventListener('submit', (e) => {
+            const target = e.target;
+
+            // Form: Crear Activo
+            if (target.id === 'form-nuevo-activo') {
+                e.preventDefault();
+                const nombre = document.getElementById('nuevo-nombre').value;
+                const categoria = document.getElementById('nueva-categoria').value;
+                
+                const nuevoFondo = {
+                    id: Date.now(),
+                    nombre: nombre,
+                    categoria: categoria,
+                    historial: []
+                };
+
+                fondos.push(nuevoFondo);
+                guardarDatos();
+                document.getElementById('modal-nuevo-activo').style.display = 'none';
+                return;
+            }
+
+            // Form: Editar Activo
+            if (target.id === 'form-editar-activo') {
+                e.preventDefault();
+                const idActivo = parseInt(document.getElementById('editar-id').value);
+                const nombre = document.getElementById('editar-nombre').value;
+                const categoria = document.getElementById('editar-categoria').value;
+
+                const fondo = fondos.find(f => f.id === idActivo);
+                if (fondo) {
+                    fondo.nombre = nombre;
+                    fondo.categoria = categoria;
+                    guardarDatos();
+                }
+                document.getElementById('modal-editar-activo').style.display = 'none';
+                return;
+            }
+
+            // Form: Registrar Fecha
+            if (target.classList.contains('form-nuevo-registro')) {
+                e.preventDefault();
+                const idFondo = parseInt(target.getAttribute('data-id'));
+                const fechaRaw = target.fecha.value; // Viene en formato YYYY-MM-DD
+                const invertido = parseFloat(target.invertido.value);
+                const valor = parseFloat(target.valor.value);
+
+                // Convertir YYYY-MM-DD a DD/MM/YYYY
+                const partes = fechaRaw.split('-');
+                const fecha = `${partes[2]}/${partes[1]}/${partes[0]}`;
+
+                const fondo = fondos.find(f => f.id === idFondo);
+                if (fondo) {
+                    if (!fondo.historial) fondo.historial = [];
+                    fondo.historial.push({ fecha, invertido, valor });
+                    
+                    // Ordenar cronológicamente convirtiendo de nuevo a objeto Date
+                    fondo.historial.sort((a, b) => {
+                        const [dA, mA, yA] = a.fecha.split('/');
+                        const [dB, mB, yB] = b.fecha.split('/');
+                        return new Date(yA, mA - 1, dA) - new Date(yB, mB - 1, dB);
+                    });
+                    
+                    guardarDatos();
+                }
+                return;
+            }
+        });
+    </script>
+</body>
+</html>
